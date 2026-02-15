@@ -1,0 +1,100 @@
+services:
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    container_name: openstack-rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - ./rabbitmq/rabbitmq_definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
+    extra_hosts:
+      - "rabbit-host:192.168.86.232"
+      - "keystone-host:192.168.86.232"
+      - "horizon-host:192.168.86.232"
+      - "cinder-host:192.168.86.232"
+      - "glance-host:192.168.86.232"
+      - "nova-host:192.168.86.232"
+      - "neutron-host:192.168.86.232"
+      - "heat-host:192.168.86.232"
+      - "mongo-host:192.168.86.232"
+      - "ceil-host:192.168.86.232"
+      - "mysql-host:192.168.86.232"
+
+  openstack-mariadb:
+    build: mariadb
+    container_name: openstack-mariadb
+    hostname: mariadb
+    ports:
+      - "3306:3306"
+    volumes:
+      - /var/lib/openstack-mariadb/mysql:/var/lib/mysql
+    env_file:
+      - ./env.list
+    extra_hosts:
+      - "rabbit-host:192.168.86.232"
+      - "keystone-host:192.168.86.232"
+      - "horizon-host:192.168.86.232"
+      - "cinder-host:192.168.86.232"
+      - "glance-host:192.168.86.232"
+      - "nova-host:192.168.86.232"
+      - "neutron-host:192.168.86.232"
+      - "heat-host:192.168.86.232"
+      - "mongo-host:192.168.86.232"
+      - "ceil-host:192.168.86.232"
+      - "mysql-host:192.168.86.232"
+        
+  openstack-keystone:
+    build: keystone
+    container_name: openstack-keystone
+    hostname: keystone
+    ports:
+      - "5000:5000"
+      - "11211:11211"
+    env_file:
+      - ./env.list
+    links:
+      - openstack-mariadb
+    environment:
+      - WAIT_SLEEP=1
+      - WAIT_LOOPS=100
+    extra_hosts:
+      - "rabbit-host:192.168.86.232"
+      - "keystone-host:192.168.86.232"
+      - "horizon-host:192.168.86.232"
+      - "cinder-host:192.168.86.232"
+      - "glance-host:192.168.86.232"
+      - "nova-host:192.168.86.232"
+      - "neutron-host:192.168.86.232"
+      - "heat-host:192.168.86.232"
+      - "mongo-host:192.168.86.232"
+      - "ceil-host:192.168.86.232"
+      - "mysql-host:192.168.86.232"
+
+  openstack-glance:
+    build: glance
+    container_name: openstack-glance
+    hostname: glance
+    ports:
+      - "9292:9292"
+    env_file:
+      - ./env.list
+    links:
+      - openstack-keystone
+    environment:
+      - WAIT_SLEEP=1
+      - WAIT_LOOPS=100
+    extra_hosts:
+      - "rabbit-host:192.168.86.232"
+      - "keystone-host:192.168.86.232"
+      - "horizon-host:192.168.86.232"
+      - "cinder-host:192.168.86.232"
+      - "glance-host:192.168.86.232"
+      - "nova-host:192.168.86.232"
+      - "neutron-host:192.168.86.232"
+      - "heat-host:192.168.86.232"
+      - "mongo-host:192.168.86.232"
+      - "ceil-host:192.168.86.232"
+      - "mysql-host:192.168.86.232"
+
