@@ -1,18 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
+: "${WAIT_LOOPS:=30}"
+: "${WAIT_SLEEP:=2}"
 
-((count = $WAIT_LOOPS))
-while [[ $count -ne 0 ]] ; do
-    sleep $WAIT_SLEEP
-    n=`openstack endpoint list -f value | grep keystone | wc -l`  
-    if [[ $n -eq 3 ]] ; then
-        echo "Keystone admin endpoint created OK"
-        ((count = 1))
-    else
-        echo "Keystone admin endpoint NOT yet"
+echo "Waiting for Keystone endpoints..."
+
+for ((i=1; i<=WAIT_LOOPS; i++)); do
+
+    count=$(openstack endpoint list \
+        --service identity \
+        -f value -c Interface 2>/dev/null | wc -l || true)
+
+    if [[ "$count" -eq 3 ]]; then
+        echo "Keystone endpoints ready."
+        exit 0
     fi
-    ((count = count - 1))
+
+    echo "[$i/$WAIT_LOOPS] Keystone endpoints not ready yet..."
+    sleep "$WAIT_SLEEP"
 done
 
-exit $rc
-
+echo "ERROR: Keystone endpoints were not created in time."
+exit 1
