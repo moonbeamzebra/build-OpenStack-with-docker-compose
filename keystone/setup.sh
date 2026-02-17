@@ -6,14 +6,21 @@ then
    exit 0
 fi
 
-## Set up keystone
-echo "CREATE DATABASE keystone;
-GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY '$KEYSTONE_DBPASS';
-GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY '$KEYSTONE_DBPASS';
-FLUSH PRIVILEGES;" | mysql --user=root --password=$MYSQL_ROOT_PASSWORD -h $MYSQLHOST -P 3306
+## Set up keystone database in PostgreSQL
+## export PGPASSWORD=$POSTGRES_ROOT_PASSWORD; psql -U postgres -d postgres -h $MYPOSTGRESQLHOST -p 5432
+## export PGPASSWORD=$KEYSTONE_DBPASS; psql -U keystone -d keystone -h $MYPOSTGRESQLHOST -p 5432
+export PGPASSWORD=$POSTGRES_ROOT_PASSWORD; psql -U postgres -d postgres -h $MYPOSTGRESQLHOST -p 5432 -c "CREATE USER keystone WITH PASSWORD '$KEYSTONE_DBPASS';"
+export PGPASSWORD=$POSTGRES_ROOT_PASSWORD; psql -U postgres -d postgres -h $MYPOSTGRESQLHOST -p 5432 -c "CREATE DATABASE keystone OWNER keystone ENCODING 'UTF8';"
+export PGPASSWORD=$POSTGRES_ROOT_PASSWORD; psql -U postgres -d postgres -h $MYPOSTGRESQLHOST -p 5432 -c "GRANT ALL PRIVILEGES ON DATABASE keystone TO keystone;"
+
+## Set up keystone database in MariaDB
+#echo "CREATE DATABASE keystone;
+#GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY '$KEYSTONE_DBPASS';
+#GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY '$KEYSTONE_DBPASS';
+#FLUSH PRIVILEGES;" | mysql --user=root --password=$MYSQL_ROOT_PASSWORD -h $MYSQLHOST -P 3306
 
 cp /etc/keystone/keystone.conf /etc/keystone/keystone.conf.bak
-crudini --set /etc/keystone/keystone.conf database connection mysql+pymysql://keystone:$KEYSTONE_DBPASS@$MYSQLHOST/keystone
+crudini --set /etc/keystone/keystone.conf database connection postgresql+psycopg2://keystone:$KEYSTONE_DBPASS@$MYPOSTGRESQLHOST/keystone
 crudini --set /etc/keystone/keystone.conf token provider fernet
 diff /etc/keystone/keystone.conf /etc/keystone/keystone.conf.bak
 
