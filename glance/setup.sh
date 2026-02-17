@@ -1,17 +1,54 @@
-#! /bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
 
-if [ -f /setup.done ];
-then
-   echo "Setup done" > /tmp/done
-   exit 0
+if [[ -f /setup.done ]]; then
+    echo "Setup already completed."
+    exit 0
 fi
 
-echo "CREATE DATABASE glance;
-GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'localhost' IDENTIFIED BY '$GLANCE_DBPASS';
-GRANT ALL PRIVILEGES ON glance.* TO 'glance'@'%' IDENTIFIED BY '$GLANCE_DBPASS';
-FLUSH PRIVILEGES;" | mysql --user=root --password=$MYSQL_ROOT_PASSWORD -h $MYSQLHOST -P 3306
+########################################
+# Helpers
+########################################
 
-cat <<EOF > /admin-openrc.sh
+retry() {
+    local retries=$1
+    shift
+    local count=0
+    until "$@"; do
+        exit_code=$?
+        count=$((count+1))
+        if [[ $count -ge $retries ]]; then
+            echo "Command failed after $count attempts."
+            return $exit_code
+        fi
+        echo "Retry $count/$retries..."
+        sleep 3
+    done
+    return $?
+}
+
+########################################
+# PostgreSQL setup (idempotent)
+########################################
+
+export PGPASSWORD="$POSTGRES_ROOT_PASSWORD"
+
+echo "DO psql -U postgres -h \"$MYPOSTGRESQLHOST\" -c \"CREATE USER glance WITH PASSWORD '$GLANCE_DBPASS';\""
+psql -U postgres -h "$MYPOSTGRESQLHOST" -tc "SELECT 1 FROM pg_roles WHERE rolname='glance'" | grep -q 1 || \
+psql -U postgres -h "$MYPOSTGRESQLHOST" -c "CREATE USER glance WITH PASSWORD '$GLANCE_DBPASS';"
+echo "DONE RC=$? ;psql -U postgres -h \"$MYPOSTGRESQLHOST\" -c \"CREATE USER glance WITH PASSWORD '$GLANCE_DBPASS';\""
+
+echo "DO psql -U postgres -h \"$MYPOSTGRESQLHOST\" -c \"CREATE DATABASE glance OWNER glance ENCODING 'UTF8';\""
+psql -U postgres -h "$MYPOSTGRESQLHOST" -tc "SELECT 1 FROM pg_database WHERE datname='glance'" | grep -q 1 || \
+psql -U postgres -h "$MYPOSTGRESQLHOST" -c "CREATE DATABASE glance OWNER glance ENCODING 'UTF8';"
+echo "DONE RC=$? ;psql -U postgres -h \"$MYPOSTGRESQLHOST\" -c \"CREATE DATABASE glance OWNER glance ENCODING 'UTF8';\""
+
+########################################
+# OpenStack Admin context
+########################################
+
+cat >/admin-openrc.sh <<EOF
 export OS_PROJECT_DOMAIN_NAME=Default
 export OS_USER_DOMAIN_NAME=Default
 export OS_PROJECT_NAME=admin
@@ -22,7 +59,7 @@ export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
 EOF
 
-cat <<EOF > /demo-openrc.sh
+cat >/demo-openrc.sh <<EOF
 export OS_PROJECT_DOMAIN_NAME=Default
 export OS_USER_DOMAIN_NAME=Default
 export OS_PROJECT_NAME=user-project
@@ -35,53 +72,79 @@ EOF
 
 source /admin-openrc.sh
 
+########################################
+# Wait Keystone
+########################################
+
 ./wait_for_ks_admin_ep.sh
 
-openstack user create --domain default --password $GLANCE_PASS glance
+########################################
+# Glance user / role (idempotent)
+########################################
 
-openstack role add --project service --user glance admin
+echo "DO openstack user create --domain default --password "$GLANCE_PASS" glance"
+retry 10 openstack user show glance >/dev/null 2>&1 || \
+retry 10 openstack user create --domain default --password "$GLANCE_PASS" glance
+echo "DONE RC=$? ;openstack user create --domain default --password "$GLANCE_PASS" glance"
 
-openstack service create --name glance \
-  --description "OpenStack Image service" image
+echo "DO openstack role add --project service --user glance admin"
+retry 10 openstack role assignment list --user glance --project service -f value --names | grep -q admin || \
+retry 10 openstack role add --project service --user glance admin
+echo "DONE RC=$? ;openstack role add --project service --user glance admin"
 
-openstack endpoint create --region $REGION1 \
-  image public http://$GLANCE_HOST:9292
+echo "DO openstack role add --user glance --system all reader"
+retry 10 openstack role assignment list --user glance --system all -f value --names | grep -q reader || \
+retry 10 openstack role add --user glance --system all reader
+echo "DONE RC=$? ;openstack role add --user glance --system all reader"
 
-# Required, maybe my VM is too slow ; TODO make a loop on rc != 0
-sleep 5
-openstack endpoint create --region $REGION1 \
-  image internal http://$GLANCE_HOST:9292
+########################################
+# Service + endpoints
+########################################
 
-# Required, maybe my VM is too slow ; TODO make a loop on rc != 0
-sleep 5
-openstack endpoint create --region $REGION1 \
-  image admin http://$GLANCE_HOST:9292
+echo "DO openstack service create --name glance --description "OpenStack Image service" image"
+retry 10 openstack service show glance >/dev/null 2>&1 || \
+retry 10 openstack service create --name glance --description "OpenStack Image service" image
+echo "DONE RC=$? ;openstack service create --name glance --description "OpenStack Image service" image"
 
-openstack role add --user glance --user-domain Default --system all reader
+for iface in public internal admin; do
+    echo "DO openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292"
+    retry 10 openstack endpoint list --service glance --interface "admin" -f value --region "$REGION1" -c URL | grep -q http://$GLANCE_HOST:9292 || \
+    retry 10 openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292
+    echo "DONE RC=$? ;openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292"
+done
 
-ENDPOINT_ID=`openstack endpoint list --service glance --region RegionOne | grep RegionOne | grep public | cut -f 2 -d ' '`
+########################################
+# Get endpoint_id safely
+########################################
 
+echo "DO ENDPOINT_ID=\$(retry 10 openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)"
+ENDPOINT_ID=$(retry 10 openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)
+echo "DONE RC=$? ;ENDPOINT_ID=\$(retry 10 openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)"
 
-cp /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak
-crudini --set /etc/glance/glance-api.conf database connection mysql+pymysql://glance:$GLANCE_DBPASS@$MYSQLHOST/glance
+########################################
+# Configure glance-api.conf
+########################################
+
+cp --update=none /etc/glance/glance-api.conf \
+      /etc/glance/glance-api.conf.bak || true
+
+crudini --set /etc/glance/glance-api.conf database connection \
+postgresql+psycopg2://glance:$GLANCE_DBPASS@$MYPOSTGRESQLHOST/glance
 
 crudini --set /etc/glance/glance-api.conf keystone_authtoken www_authenticate_uri http://$KEYSTONE_HOST:5000
 crudini --set /etc/glance/glance-api.conf keystone_authtoken auth_url http://$KEYSTONE_HOST:5000
 crudini --set /etc/glance/glance-api.conf keystone_authtoken memcached_servers $KEYSTONE_HOST:11211
-
 crudini --set /etc/glance/glance-api.conf keystone_authtoken auth_type password
 crudini --set /etc/glance/glance-api.conf keystone_authtoken project_domain_name Default
 crudini --set /etc/glance/glance-api.conf keystone_authtoken user_domain_name Default
 crudini --set /etc/glance/glance-api.conf keystone_authtoken project_name service
 crudini --set /etc/glance/glance-api.conf keystone_authtoken username glance
-crudini --set /etc/glance/glance-api.conf keystone_authtoken password $GLANCE_PASS
+crudini --set /etc/glance/glance-api.conf keystone_authtoken password "$GLANCE_PASS"
 
 crudini --set /etc/glance/glance-api.conf paste_deploy flavor keystone
 
 crudini --set /etc/glance/glance-api.conf DEFAULT enabled_backends fs:file
-
 crudini --set /etc/glance/glance-api.conf glance_store default_backend fs
-
 crudini --set /etc/glance/glance-api.conf fs filesystem_store_datadir /var/lib/glance/images/
 
 crudini --set /etc/glance/glance-api.conf oslo_limit auth_url http://$KEYSTONE_HOST:5000
@@ -89,15 +152,20 @@ crudini --set /etc/glance/glance-api.conf oslo_limit auth_type password
 crudini --set /etc/glance/glance-api.conf oslo_limit user_domain_id default
 crudini --set /etc/glance/glance-api.conf oslo_limit username glance
 crudini --set /etc/glance/glance-api.conf oslo_limit system_scope all
-crudini --set /etc/glance/glance-api.conf oslo_limit password $GLANCE_PASS
-crudini --set /etc/glance/glance-api.conf oslo_limit endpoint_id $ENDPOINT_ID
-crudini --set /etc/glance/glance-api.conf oslo_limit region_name $REGION1
+crudini --set /etc/glance/glance-api.conf oslo_limit password "$GLANCE_PASS"
+crudini --set /etc/glance/glance-api.conf oslo_limit endpoint_id "$ENDPOINT_ID"
+crudini --set /etc/glance/glance-api.conf oslo_limit region_name "$REGION1"
 
-diff /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak
+diff /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak || true
 
-sleep 5
+########################################
+# DB sync + restart
+########################################
 
-su -s /bin/sh -c "glance-manage db_sync" glance 2>&1 > /var/log/glance/glance-manage.out
+su -s /bin/sh -c "glance-manage db_sync" glance
+
 service glance-api restart
 
 touch /setup.done
+
+echo "Glance setup completed successfully."
