@@ -1,6 +1,6 @@
 #! /bin/bash +ex
 memcached -u memcache & 
-#service memcache restart
+#apachectl -D FOREGROUND
 service apache2 restart
 touch /var/log/apache2/keystone_access.log
 tail -F /var/log/apache2/keystone_access.log
