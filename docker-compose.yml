@@ -21,6 +21,36 @@ services:
       - "mongo-host:192.168.86.232"
       - "ceil-host:192.168.86.232"
       - "mysql-host:192.168.86.232"
+      - "postgres-host:192.168.86.232"
+
+  postgres:
+    image: postgres:16
+    container_name: openstack-postgres
+    hostname: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - /var/lib/openstack-postgres/data:/var/lib/postgresql/data
+    env_file:
+      - ./env.list
+    ports:
+      - "5432:5432"
+    extra_hosts:
+      - "rabbit-host:192.168.86.232"
+      - "keystone-host:192.168.86.232"
+      - "horizon-host:192.168.86.232"
+      - "cinder-host:192.168.86.232"
+      - "glance-host:192.168.86.232"
+      - "nova-host:192.168.86.232"
+      - "neutron-host:192.168.86.232"
+      - "heat-host:192.168.86.232"
+      - "mongo-host:192.168.86.232"
+      - "ceil-host:192.168.86.232"
+      - "mysql-host:192.168.86.232"
+      - "postgres-host:192.168.86.232"
 
   openstack-mariadb:
     build: mariadb
@@ -44,6 +74,7 @@ services:
       - "mongo-host:192.168.86.232"
       - "ceil-host:192.168.86.232"
       - "mysql-host:192.168.86.232"
+      - "postgres-host:192.168.86.232"
         
   openstack-keystone:
     build: keystone
@@ -71,6 +102,7 @@ services:
       - "mongo-host:192.168.86.232"
       - "ceil-host:192.168.86.232"
       - "mysql-host:192.168.86.232"
+      - "postgres-host:192.168.86.232"
 
   openstack-glance:
     build: glance
@@ -97,4 +129,5 @@ services:
       - "mongo-host:192.168.86.232"
       - "ceil-host:192.168.86.232"
       - "mysql-host:192.168.86.232"
+      - "postgres-host:192.168.86.232"
 
