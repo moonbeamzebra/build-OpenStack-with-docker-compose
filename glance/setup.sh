@@ -11,26 +11,52 @@ fi
 # Helpers
 ########################################
 
+########################################
+# retry compatible set -e
+########################################
 retry() {
-    local retries=$1
+    local retries="$1"
     shift
+
+    local no_retry_codes=()
+
+    while [[ "$1" != "--" ]]; do
+        no_retry_codes+=("$1")
+        shift
+    done
+    shift
+
+    [[ ${#no_retry_codes[@]} -eq 0 ]] && no_retry_codes=(0)
+
     local count=0
-    until "$@"; do
-        exit_code=$?
-        count=$((count+1))
-        if [[ $count -ge $retries ]]; then
-            echo "Command failed after $count attempts."
-            return $exit_code
+    local rc
+
+    while true; do
+        set +e
+        "$@"
+        rc=$?
+        for code in "${no_retry_codes[@]}"; do
+            [[ $rc -eq $code ]] && set -e && return $rc
+        done
+
+        ((count++))
+        if ((count >= retries)); then
+            echo "Command failed after $count attempts (rc=$rc)"
+            return "$rc"
         fi
-        echo "Retry $count/$retries..."
+
+        echo "====="
+        echo "RETRY: [$@] $count/$retries (rc=$rc) ... in 3 seconds"
+        echo "====="
         sleep 3
     done
-    return $?
 }
 
 ########################################
 # PostgreSQL setup (idempotent)
 ########################################
+## export PGPASSWORD=$POSTGRES_ROOT_PASSWORD; psql -U postgres -d postgres -h $MYPOSTGRESQLHOST -p 5432
+## export PGPASSWORD=$GLANCE_DBPASS; psql -U glance -d glance -h $MYPOSTGRESQLHOST -p 5432
 
 export PGPASSWORD="$POSTGRES_ROOT_PASSWORD"
 
@@ -83,18 +109,18 @@ source /admin-openrc.sh
 ########################################
 
 echo "DO openstack user create --domain default --password "$GLANCE_PASS" glance"
-retry 10 openstack user show glance >/dev/null 2>&1 || \
-retry 10 openstack user create --domain default --password "$GLANCE_PASS" glance
+retry 10 0 1 -- openstack user show --domain default glance >/dev/null 2>&1 || \
+retry 10 0 -- openstack user create --domain default --password "$GLANCE_PASS" glance
 echo "DONE RC=$? ;openstack user create --domain default --password "$GLANCE_PASS" glance"
 
 echo "DO openstack role add --project service --user glance admin"
-retry 10 openstack role assignment list --user glance --project service -f value --names | grep -q admin || \
-retry 10 openstack role add --project service --user glance admin
+retry 10 0 1 -- openstack role assignment list --user glance --project service -f value --names | grep -q admin || \
+retry 10 0 -- openstack role add --project service --user glance admin
 echo "DONE RC=$? ;openstack role add --project service --user glance admin"
 
 echo "DO openstack role add --user glance --system all reader"
-retry 10 openstack role assignment list --user glance --system all -f value --names | grep -q reader || \
-retry 10 openstack role add --user glance --system all reader
+retry 10 0 1 -- openstack role assignment list --user glance --system all -f value --names | grep -q reader || \
+retry 10 0 -- openstack role add --user glance --system all reader
 echo "DONE RC=$? ;openstack role add --user glance --system all reader"
 
 ########################################
@@ -102,14 +128,14 @@ echo "DONE RC=$? ;openstack role add --user glance --system all reader"
 ########################################
 
 echo "DO openstack service create --name glance --description "OpenStack Image service" image"
-retry 10 openstack service show glance >/dev/null 2>&1 || \
-retry 10 openstack service create --name glance --description "OpenStack Image service" image
+retry 10 0 1 -- openstack service show glance >/dev/null 2>&1 || \
+retry 10 0 -- openstack service create --name glance --description "OpenStack Image service" image
 echo "DONE RC=$? ;openstack service create --name glance --description "OpenStack Image service" image"
 
 for iface in public internal admin; do
     echo "DO openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292"
-    retry 10 openstack endpoint list --service glance --interface "admin" -f value --region "$REGION1" -c URL | grep -q http://$GLANCE_HOST:9292 || \
-    retry 10 openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292
+    retry 10 0 1 -- openstack endpoint list --service glance --interface "$iface" --region "$REGION1" -f value -c URL | grep -q http://$GLANCE_HOST:9292 || \
+    retry 10 0 -- openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292
     echo "DONE RC=$? ;openstack endpoint create --region "$REGION1" image "$iface" http://$GLANCE_HOST:9292"
 done
 
@@ -117,9 +143,9 @@ done
 # Get endpoint_id safely
 ########################################
 
-echo "DO ENDPOINT_ID=\$(retry 10 openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)"
-ENDPOINT_ID=$(retry 10 openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)
-echo "DONE RC=$? ;ENDPOINT_ID=\$(retry 10 openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)"
+echo "DO ENDPOINT_ID=\$(retry 10 0 -- openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)"
+ENDPOINT_ID=$(retry 10 0 -- openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)
+echo "DONE RC=$? ;ENDPOINT_ID=\$(retry 10 0 -- openstack endpoint list --service glance --interface public --region "$REGION1" -f value -c ID)"
 
 ########################################
 # Configure glance-api.conf
