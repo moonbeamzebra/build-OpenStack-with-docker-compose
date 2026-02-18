@@ -3,6 +3,7 @@ services:
     image: rabbitmq:4.1-management
     container_name: openstack-rabbitmq
     hostname: rabbitmq
+    restart: unless-stopped
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -52,41 +53,42 @@ services:
       - "mysql-host:192.168.86.232"
       - "postgres-host:192.168.86.232"
 
-  openstack-mariadb:
-    build: mariadb
-    container_name: openstack-mariadb
-    hostname: mariadb
-    ports:
-      - "3306:3306"
-    volumes:
-      - /var/lib/openstack-mariadb/mysql:/var/lib/mysql
-    env_file:
-      - ./env.list
-    extra_hosts:
-      - "rabbit-host:192.168.86.232"
-      - "keystone-host:192.168.86.232"
-      - "horizon-host:192.168.86.232"
-      - "cinder-host:192.168.86.232"
-      - "glance-host:192.168.86.232"
-      - "nova-host:192.168.86.232"
-      - "neutron-host:192.168.86.232"
-      - "heat-host:192.168.86.232"
-      - "mongo-host:192.168.86.232"
-      - "ceil-host:192.168.86.232"
-      - "mysql-host:192.168.86.232"
-      - "postgres-host:192.168.86.232"
+#  openstack-mariadb:
+#    build: mariadb
+#    container_name: openstack-mariadb
+#    hostname: mariadb
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - /var/lib/openstack-mariadb/mysql:/var/lib/mysql
+#    env_file:
+#      - ./env.list
+#    extra_hosts:
+#      - "rabbit-host:192.168.86.232"
+#      - "keystone-host:192.168.86.232"
+#      - "horizon-host:192.168.86.232"
+#      - "cinder-host:192.168.86.232"
+#      - "glance-host:192.168.86.232"
+#      - "nova-host:192.168.86.232"
+#      - "neutron-host:192.168.86.232"
+#      - "heat-host:192.168.86.232"
+#      - "mongo-host:192.168.86.232"
+#      - "ceil-host:192.168.86.232"
+#      - "mysql-host:192.168.86.232"
+#      - "postgres-host:192.168.86.232"
         
   openstack-keystone:
     build: keystone
     container_name: openstack-keystone
     hostname: keystone
+    restart: unless-stopped
     ports:
       - "5000:5000"
       - "11211:11211"
     env_file:
       - ./env.list
     links:
-      - openstack-mariadb
+      - postgres
     environment:
       - WAIT_SLEEP=1
       - WAIT_LOOPS=100
@@ -108,6 +110,7 @@ services:
     build: glance
     container_name: openstack-glance
     hostname: glance
+    restart: unless-stopped
     ports:
       - "9292:9292"
     env_file:
