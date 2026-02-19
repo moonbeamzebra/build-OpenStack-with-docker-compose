@@ -11,7 +11,8 @@ docker rmi  build-openstack-with-docker-compose-openstack-keystone:latest \
             build-openstack-with-docker-compose-openstack-mariadb:latest \
             openstack-base:latest
 
-docker build -t openstack-base openstack-base
+#docker build -t openstack-base openstack-base
+docker build --build-arg DEBUG=true -t openstack-base openstack-base
 
 docker compose create
 docker compose start

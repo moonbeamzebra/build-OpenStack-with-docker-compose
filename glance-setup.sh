@@ -102,7 +102,7 @@ source /admin-openrc.sh
 # Wait Keystone
 ########################################
 
-./wait_for_ks_admin_ep.sh
+/usr/local/bin/wait_for_ks_admin_ep.sh
 
 ########################################
 # Glance user / role (idempotent)
@@ -190,7 +190,7 @@ diff /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak || true
 
 su -s /bin/sh -c "glance-manage db_sync" glance
 
-service glance-api restart
+#service glance-api restart
 
 touch /setup.done
 
