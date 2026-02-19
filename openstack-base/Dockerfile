@@ -7,11 +7,9 @@ RUN apt-get update && apt-get install -y \
         crudini \
         curl \
         netcat-openbsd \
-        mariadb-client \
         postgresql-client \
         python3-psycopg2 \
-        libpq-dev \
-        python3-mysqldb
+        libpq-dev
 
 ## Get the packages
 RUN apt-get install software-properties-common -y

@@ -35,8 +35,6 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - /var/lib/openstack-postgres/data:/var/lib/postgresql/data
-    env_file:
-      - ./env.list
     ports:
       - "5432:5432"
     extra_hosts:
@@ -53,32 +51,10 @@ services:
       - "mysql-host:192.168.86.232"
       - "postgres-host:192.168.86.232"
 
-#  openstack-mariadb:
-#    build: mariadb
-#    container_name: openstack-mariadb
-#    hostname: mariadb
-#    ports:
-#      - "3306:3306"
-#    volumes:
-#      - /var/lib/openstack-mariadb/mysql:/var/lib/mysql
-#    env_file:
-#      - ./env.list
-#    extra_hosts:
-#      - "rabbit-host:192.168.86.232"
-#      - "keystone-host:192.168.86.232"
-#      - "horizon-host:192.168.86.232"
-#      - "cinder-host:192.168.86.232"
-#      - "glance-host:192.168.86.232"
-#      - "nova-host:192.168.86.232"
-#      - "neutron-host:192.168.86.232"
-#      - "heat-host:192.168.86.232"
-#      - "mongo-host:192.168.86.232"
-#      - "ceil-host:192.168.86.232"
-#      - "mysql-host:192.168.86.232"
-#      - "postgres-host:192.168.86.232"
-        
   openstack-keystone:
-    build: keystone
+    build:
+      context: .
+      dockerfile: keystone-dockerfile
     container_name: openstack-keystone
     hostname: keystone
     restart: unless-stopped
@@ -107,7 +83,9 @@ services:
       - "postgres-host:192.168.86.232"
 
   openstack-glance:
-    build: glance
+    build:
+      context: .
+      dockerfile: glance-dockerfile
     container_name: openstack-glance
     hostname: glance
     restart: unless-stopped

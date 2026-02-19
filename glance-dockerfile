@@ -1,0 +1,17 @@
+FROM openstack-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get install -y glance
+
+ADD glance-setup.sh glance-setup.sh
+ADD glance-run.sh glance-run.sh
+ADD wait_for_ks_admin_ep.sh wait_for_ks_admin_ep.sh
+ADD wait_for_postgreSQL.sh wait_for_postgreSQL.sh
+
+RUN chmod +x wait_for_ks_admin_ep.sh && chmod +x wait_for_postgreSQL.sh && chmod +x glance-run.sh && chmod +x glance-setup.sh
+
+EXPOSE 9292
+
+CMD ./wait_for_postgreSQL.sh && ./glance-setup.sh && sleep 5 && ./glance-run.sh
+#CMD tail -F /var/log/glance.log
