@@ -159,7 +159,7 @@ postgresql+psycopg2://glance:$GLANCE_DBPASS@$MYPOSTGRESQLHOST/glance
 
 crudini --set /etc/glance/glance-api.conf keystone_authtoken www_authenticate_uri http://$KEYSTONE_HOST:5000
 crudini --set /etc/glance/glance-api.conf keystone_authtoken auth_url http://$KEYSTONE_HOST:5000
-crudini --set /etc/glance/glance-api.conf keystone_authtoken memcached_servers $KEYSTONE_HOST:11211
+crudini --set /etc/glance/glance-api.conf keystone_authtoken memcached_servers memcached:11211
 crudini --set /etc/glance/glance-api.conf keystone_authtoken auth_type password
 crudini --set /etc/glance/glance-api.conf keystone_authtoken project_domain_name Default
 crudini --set /etc/glance/glance-api.conf keystone_authtoken user_domain_name Default
@@ -194,4 +194,4 @@ su -s /bin/sh -c "glance-manage db_sync" glance
 
 touch /setup.done
 
-echo "Glance setup completed successfully."
+echo "Glance setup.sh completed successfully."
