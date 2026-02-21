@@ -10,20 +10,6 @@ services:
     volumes:
       - ./rabbitmq/rabbitmq_definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config:ro
-    extra_hosts:
-      - "rabbit-host:192.168.86.232"
-      - "keystone-host:192.168.86.232"
-      - "horizon-host:192.168.86.232"
-      - "cinder-host:192.168.86.232"
-      - "glance-host:192.168.86.232"
-      - "nova-host:192.168.86.232"
-      - "neutron-host:192.168.86.232"
-      - "heat-host:192.168.86.232"
-      - "mongo-host:192.168.86.232"
-      - "ceil-host:192.168.86.232"
-      - "mysql-host:192.168.86.232"
-      - "postgres-host:192.168.86.232"
-      - "memcached:192.168.86.232"
 
   postgres:
     image: postgres:16
@@ -43,24 +29,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    extra_hosts:
-      - "rabbit-host:192.168.86.232"
-      - "keystone-host:192.168.86.232"
-      - "horizon-host:192.168.86.232"
-      - "cinder-host:192.168.86.232"
-      - "glance-host:192.168.86.232"
-      - "nova-host:192.168.86.232"
-      - "neutron-host:192.168.86.232"
-      - "heat-host:192.168.86.232"
-      - "mongo-host:192.168.86.232"
-      - "ceil-host:192.168.86.232"
-      - "mysql-host:192.168.86.232"
-      - "postgres-host:192.168.86.232"
-      - "memcached:192.168.86.232"
 
   memcached:
     image: memcached:1.6
     container_name: openstack-memcached
+    hostname: memcached
     restart: unless-stopped
     command: memcached -m 64
     ports:
@@ -73,7 +46,7 @@ services:
       timeout: 3s
       retries: 20
 
-  openstack-keystone:
+  keystone:
     build:
       context: .
       dockerfile: keystone-dockerfile
@@ -94,47 +67,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    extra_hosts:
-      - "rabbit-host:192.168.86.232"
-      - "keystone-host:192.168.86.232"
-      - "horizon-host:192.168.86.232"
-      - "cinder-host:192.168.86.232"
-      - "glance-host:192.168.86.232"
-      - "nova-host:192.168.86.232"
-      - "neutron-host:192.168.86.232"
-      - "heat-host:192.168.86.232"
-      - "mongo-host:192.168.86.232"
-      - "ceil-host:192.168.86.232"
-      - "mysql-host:192.168.86.232"
-      - "postgres-host:192.168.86.232"
-      - "memcached:192.168.86.232"
 
   keystone-init:
     build:
       context: .
       dockerfile: keystone-init-dockerfile
+    container_name: keystone-init
+    hostname: keystone-init
     env_file:
       - ./env.list
     depends_on:
-      openstack-keystone:
+      keystone:
         condition: service_healthy
     restart: "no"
-    extra_hosts:
-      - "rabbit-host:192.168.86.232"
-      - "keystone-host:192.168.86.232"
-      - "horizon-host:192.168.86.232"
-      - "cinder-host:192.168.86.232"
-      - "glance-host:192.168.86.232"
-      - "nova-host:192.168.86.232"
-      - "neutron-host:192.168.86.232"
-      - "heat-host:192.168.86.232"
-      - "mongo-host:192.168.86.232"
-      - "ceil-host:192.168.86.232"
-      - "mysql-host:192.168.86.232"
-      - "postgres-host:192.168.86.232"
-      - "memcached:192.168.86.232"
 
-  openstack-glance:
+  glance:
     build:
       context: .
       dockerfile: glance-dockerfile
@@ -148,24 +95,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      openstack-keystone:
+      keystone:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost:9292/ | grep -q CURRENT"]
       interval: 5s
       timeout: 3s
       retries: 20
-    extra_hosts:
-      - "rabbit-host:192.168.86.232"
-      - "keystone-host:192.168.86.232"
-      - "horizon-host:192.168.86.232"
-      - "cinder-host:192.168.86.232"
-      - "glance-host:192.168.86.232"
-      - "nova-host:192.168.86.232"
-      - "neutron-host:192.168.86.232"
-      - "heat-host:192.168.86.232"
-      - "mongo-host:192.168.86.232"
-      - "ceil-host:192.168.86.232"
-      - "mysql-host:192.168.86.232"
-      - "postgres-host:192.168.86.232"
-      - "memcached:192.168.86.232"

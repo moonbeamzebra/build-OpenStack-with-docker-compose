@@ -2,8 +2,8 @@
 set -euo pipefail
 
 export PGPASSWORD="$POSTGRES_ROOT_PASSWORD"
-psql -U postgres -h "$MYPOSTGRESQLHOST" -tc "SELECT * FROM pg_roles WHERE rolname='glance'"
-psql -U postgres -h "$MYPOSTGRESQLHOST" -tc "SELECT * FROM pg_database WHERE datname='glance'"
+psql -U postgres -h "postgres" -tc "SELECT * FROM pg_roles WHERE rolname='glance'"
+psql -U postgres -h "postgres" -tc "SELECT * FROM pg_database WHERE datname='glance'"
 
 openstack user show --domain default glance
 openstack role assignment list --user glance --project service -f value --names
@@ -20,7 +20,7 @@ echo "ENDPOINT_ID=[${ENDPOINT_ID}]"
 diff /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak || true
 
 export PGPASSWORD="$GLANCE_DBPASS"
-psql -U glance -d glance -h $MYPOSTGRESQLHOST -p 5432 -tc "\dt"
+psql -U glance -d glance -h postgres -p 5432 -tc "\dt"
 
 curl -O http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img
 glance image-create --name "cirros" \
@@ -28,6 +28,6 @@ glance image-create --name "cirros" \
   --disk-format qcow2 --container-format bare \
   --visibility=public || true
 
-psql -U glance -d glance -h $MYPOSTGRESQLHOST -p 5432 -tc "SELECT * FROM images"
+psql -U glance -d glance -h postgres -p 5432 -tc "SELECT * FROM images"
 
 

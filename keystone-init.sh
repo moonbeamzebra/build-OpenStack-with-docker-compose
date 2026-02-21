@@ -56,7 +56,7 @@ retry() {
 
 echo "Waiting for Keystone API..."
 
-until curl -sf http://$KEYSTONE_HOST:5000/v3 >/dev/null; do
+until curl -sf http://keystone:5000/v3 >/dev/null; do
   sleep 2
 done
 
@@ -65,7 +65,7 @@ export OS_PASSWORD=$ADMIN_PASS
 export OS_PROJECT_NAME=admin
 export OS_USER_DOMAIN_NAME=Default
 export OS_PROJECT_DOMAIN_NAME=Default
-export OS_AUTH_URL=http://$KEYSTONE_HOST:5000/v3
+export OS_AUTH_URL=http://keystone:5000/v3
 export OS_IDENTITY_API_VERSION=3
 
 echo "DO openstack domain create --description "An Example Domain" example"

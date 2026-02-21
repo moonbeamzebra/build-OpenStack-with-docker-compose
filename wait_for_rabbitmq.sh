@@ -4,7 +4,7 @@
 ((count = $WAIT_LOOPS))
 while [[ $count -ne 0 ]] ; do
     sleep $WAIT_SLEEP
-    nc -zv rabbit-host 5672
+    nc -zv rabbitmq 5672
     rc=$?
     if [[ $rc -eq 0 ]] ; then
         echo "RabbitMQ is responding OK"

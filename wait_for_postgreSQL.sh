@@ -7,7 +7,6 @@ set -euo pipefail
 
 : "${WAIT_LOOPS:=60}"
 : "${WAIT_SLEEP:=2}"
-: "${MYPOSTGRESQLHOST:?MYPOSTGRESQLHOST not set}"
 : "${POSTGRES_PORT:=5432}"
 : "${POSTGRES_USER:=postgres}"
 
@@ -25,12 +24,12 @@ fi
 # Wait loop (network + server ready)
 ########################################
 
-echo "Waiting for PostgreSQL on ${MYPOSTGRESQLHOST}:${POSTGRES_PORT} ..."
+echo "Waiting for PostgreSQL on postgres:${POSTGRES_PORT} ..."
 
 for ((i=1; i<=WAIT_LOOPS; i++)); do
 
     if pg_isready \
-        --host="$MYPOSTGRESQLHOST" \
+        --host="postgres" \
         --port="$POSTGRES_PORT" \
         --username="$POSTGRES_USER" \
         >/dev/null 2>&1; then
@@ -58,7 +57,7 @@ if [[ -n "${POSTGRES_ROOT_PASSWORD:-}" ]]; then
     echo "Verifying PostgreSQL authentication..."
 
     if ! psql \
-        --host="$MYPOSTGRESQLHOST" \
+        --host="postgres" \
         --port="$POSTGRES_PORT" \
         --username="$POSTGRES_USER" \
         --dbname=postgres \
