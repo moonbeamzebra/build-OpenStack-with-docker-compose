@@ -3,9 +3,6 @@ set -euo pipefail
 
 echo "Starting Glance container..."
 
-echo "Waiting for PostgreSQL..."
-wait_for_postgreSQL.sh
-
 echo "Running Glance setup..."
 glance-setup.sh
 

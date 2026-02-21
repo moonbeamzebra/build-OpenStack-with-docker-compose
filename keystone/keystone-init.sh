@@ -54,12 +54,6 @@ retry() {
     done
 }
 
-echo "Waiting for Keystone API..."
-
-until curl -sf http://keystone:5000/v3 >/dev/null; do
-  sleep 2
-done
-
 export OS_USERNAME=admin
 export OS_PASSWORD=$ADMIN_PASS
 export OS_PROJECT_NAME=admin

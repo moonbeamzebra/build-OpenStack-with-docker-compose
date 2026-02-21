@@ -12,8 +12,6 @@ RUN apt-get update \
 
 # Copy scripts
 COPY glance/glance-setup.sh /usr/local/bin/
-COPY wait_for_ks_admin_ep.sh /usr/local/bin/
-COPY wait_for_postgreSQL.sh /usr/local/bin/
 COPY glance/glance-entrypoint.sh /usr/local/bin/
 COPY glance/glance-test-setup.sh /usr/local/bin/
 

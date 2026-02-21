@@ -4,6 +4,3 @@ sync.sh
 env.list
 rabbitmq_definitions.json
 .env
-setup.old.sh
-wait_for_ks_admin_ep.sh.old
-wait_for_postgreSQL.old.sh

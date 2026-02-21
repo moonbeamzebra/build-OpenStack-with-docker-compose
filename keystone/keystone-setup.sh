@@ -36,8 +36,6 @@ crudini --set /etc/keystone/keystone.conf cache memcache_servers memcached:11211
 
 diff /etc/keystone/keystone.conf /etc/keystone/keystone.conf.bak || true
 
-#sleep 5
-
 su -s /bin/sh -c "keystone-manage db_sync" keystone
 
 keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone

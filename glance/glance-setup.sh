@@ -99,12 +99,6 @@ EOF
 source /admin-openrc.sh
 
 ########################################
-# Wait Keystone
-########################################
-
-/usr/local/bin/wait_for_ks_admin_ep.sh
-
-########################################
 # Glance user / role (idempotent)
 ########################################
 
