@@ -48,7 +48,7 @@ services:
   keystone:
     build:
       context: .
-      dockerfile: keystone-dockerfile
+      dockerfile: keystone/keystone-dockerfile
     container_name: openstack-keystone
     hostname: keystone
     restart: unless-stopped
@@ -70,7 +70,7 @@ services:
   keystone-init:
     build:
       context: .
-      dockerfile: keystone-init-dockerfile
+      dockerfile: keystone/keystone-init-dockerfile
     container_name: keystone-init
     hostname: keystone-init
     networks:
@@ -85,7 +85,7 @@ services:
   glance:
     build:
       context: .
-      dockerfile: glance-dockerfile
+      dockerfile: glance/glance-dockerfile
     container_name: openstack-glance
     hostname: glance
     restart: unless-stopped

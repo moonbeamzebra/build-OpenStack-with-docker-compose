@@ -11,11 +11,11 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy scripts
-COPY glance-setup.sh /usr/local/bin/
+COPY glance/glance-setup.sh /usr/local/bin/
 COPY wait_for_ks_admin_ep.sh /usr/local/bin/
 COPY wait_for_postgreSQL.sh /usr/local/bin/
-COPY glance-entrypoint.sh /usr/local/bin/
-COPY glance-test-setup.sh /usr/local/bin/
+COPY glance/glance-entrypoint.sh /usr/local/bin/
+COPY glance/glance-test-setup.sh /usr/local/bin/
 
 # Make scripts executable
 RUN chmod +x /usr/local/bin/*.sh

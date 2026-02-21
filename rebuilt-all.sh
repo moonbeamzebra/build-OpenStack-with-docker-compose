@@ -6,9 +6,9 @@ sudo rm -rf /var/lib/openstack-mariadb
 sudo rm -rf /var/lib/openstack-postgres
 sudo rm -rf /var/lib/openstack-rabbitmq
 
-docker rmi  build-openstack-with-docker-compose-openstack-keystone:latest \
-            build-openstack-with-docker-compose-openstack-glance:latest \
-            build-openstack-with-docker-compose-openstack-mariadb:latest \
+docker rmi  build-openstack-with-docker-compose-keystone:latest \
+            build-openstack-with-docker-compose-keystone-init:latest \
+            build-openstack-with-docker-compose-glance:latest \
             openstack-base:latest
 
 #docker build -t openstack-base openstack-base
