@@ -44,6 +44,11 @@ services:
     command: memcached -m 64
     ports:
       - "11211:11211"
+    healthcheck:
+      test: ["CMD", "memcached", "-h"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   keystone:
     build:
@@ -59,6 +64,8 @@ services:
     env_file:
       - ./env.list
     depends_on:
+      memcached:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     healthcheck:
