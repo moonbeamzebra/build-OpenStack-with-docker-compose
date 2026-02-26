@@ -145,11 +145,9 @@ echo "DONE RC=$? ;ENDPOINT_ID=\$(retry 10 0 -- openstack endpoint list --service
 # Configure glance-api.conf
 ########################################
 
-cp --update=none /etc/glance/glance-api.conf \
-      /etc/glance/glance-api.conf.bak || true
+cp --update=none /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak || true
 
-crudini --set /etc/glance/glance-api.conf database connection \
-postgresql+psycopg2://glance:$GLANCE_DBPASS@postgres/glance
+crudini --set /etc/glance/glance-api.conf database connection postgresql+psycopg2://glance:$GLANCE_DBPASS@postgres/glance
 
 crudini --set /etc/glance/glance-api.conf keystone_authtoken www_authenticate_uri http://keystone:5000
 crudini --set /etc/glance/glance-api.conf keystone_authtoken auth_url http://keystone:5000
@@ -183,8 +181,6 @@ diff /etc/glance/glance-api.conf /etc/glance/glance-api.conf.bak || true
 ########################################
 
 su -s /bin/sh -c "glance-manage db_sync" glance
-
-#service glance-api restart
 
 touch /setup.done
 

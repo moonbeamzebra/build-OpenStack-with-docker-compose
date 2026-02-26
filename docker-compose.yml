@@ -119,6 +119,30 @@ services:
       timeout: 3s
       retries: 20
 
+  placement:
+    build:
+      context: .
+      dockerfile: placement/placement-dockerfile
+    container_name: openstack-placement
+    hostname: placement
+    restart: unless-stopped
+    networks:
+      - openstack-net
+    ports:
+      - "8778:8778"
+    env_file:
+      - ./env.list
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:8778/ | grep -q CURRENT"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 networks:
   openstack-net:
     driver: bridge

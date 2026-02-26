@@ -1,0 +1,27 @@
+FROM openstack-base
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update \
+    && apt install -y --no-install-recommends \
+        placement-api \
+        python3-gunicorn \
+        gunicorn \
+        tini \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/placement /var/lib/placement/tmp
+
+# Copy scripts
+COPY placement/placement-setup.sh /usr/local/bin/
+COPY placement/placement-entrypoint.sh /usr/local/bin/
+COPY placement/placement-test-setup.sh /usr/local/bin/
+
+# Make scripts executable
+RUN chmod +x /usr/local/bin/*.sh
+
+EXPOSE 8778
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/placement-entrypoint.sh"]
+
