@@ -1,0 +1,9 @@
+FROM openstack-nova-base
+
+RUN mkdir -p /etc/nova /var/lib/nova/tmp
+
+# Copy config
+COPY nova/nova.conf /etc/nova/nova.conf
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["nova-api"]

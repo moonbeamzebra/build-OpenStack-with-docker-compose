@@ -143,6 +143,111 @@ services:
       timeout: 3s
       retries: 20
 
+  nova-api:
+    build:
+      context: .
+      dockerfile: nova/nova-dockerfile
+    container_name: openstack-nova-api
+    hostname: nova-api
+    restart: unless-stopped
+    networks:
+      - openstack-net
+    ports:
+      - "8774:8774"
+    env_file:
+      - ./env.list
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8774 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  nova-scheduler:
+    build:
+      context: .
+      dockerfile: nova/nova-others-dockerfile
+    container_name: openstack-nova-scheduler
+    hostname: nova-scheduler
+    command: nova-scheduler
+    restart: unless-stopped
+    networks:
+      - openstack-net
+    env_file:
+      - ./env.list
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+      nova-api:
+        condition: service_healthy
+      placement:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f nova-scheduler || exit 1"]
+
+  nova-conductor:
+    build:
+      context: .
+      dockerfile: nova/nova-others-dockerfile
+    container_name: openstack-nova-conductor
+    hostname: nova-conductor
+    command: nova-conductor
+    restart: unless-stopped
+    networks:
+      - openstack-net
+    env_file:
+      - ./env.list
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+      nova-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f nova-conductor || exit 1"]
+
+  nova-novncproxy:
+    build:
+      context: .
+      dockerfile: nova/nova-others-dockerfile
+    container_name: openstack-nova-novncproxy
+    hostname: nova-novncproxy
+    command: nova-novncproxy
+    restart: unless-stopped
+    networks:
+      - openstack-net
+    ports:
+      - "6080:6080"
+    env_file:
+      - ./env.list
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+      nova-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 6080 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
 networks:
   openstack-net:
     driver: bridge
