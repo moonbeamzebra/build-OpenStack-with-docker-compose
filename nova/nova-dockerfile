@@ -14,4 +14,3 @@ RUN chmod +x /usr/local/bin/*.sh
 
 # Entrypoint
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/nova-entrypoint.sh"]
-#CMD ["tail", "-F", "/var/log/lastlog"]

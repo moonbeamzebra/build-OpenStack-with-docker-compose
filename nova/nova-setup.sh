@@ -62,6 +62,7 @@ echo "Creating nova database..."
 
 export PGPASSWORD="$POSTGRES_ROOT_PASSWORD"
 
+# Create user nova
 echo "DO psql -U postgres -h \"postgres\" -c \"CREATE USER nova WITH PASSWORD '$NOVA_DBPASS';\""
 psql -U postgres -h "postgres" -tc "SELECT 1 FROM pg_roles WHERE rolname='nova'" | grep -q 1 || \
 psql -U postgres -h "postgres" -c "CREATE USER nova WITH PASSWORD '$NOVA_DBPASS';"

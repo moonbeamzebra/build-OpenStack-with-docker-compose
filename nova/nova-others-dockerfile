@@ -6,4 +6,5 @@ RUN mkdir -p /etc/nova /var/lib/nova/tmp
 COPY nova/nova.conf /etc/nova/nova.conf
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
+# Overwrite in docker-compose.yml
 CMD ["nova-api"]

@@ -248,6 +248,137 @@ services:
       timeout: 3s
       retries: 10
 
+  nova-compute:
+    build:
+      context: .
+      dockerfile: nova/nova-compute-dockerfile
+    container_name: openstack-nova-compute
+    hostname: nova-compute
+    privileged: true
+    network_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /lib/modules:/lib/modules:ro
+      - /var/lib/openstack-nova-compute:/var/lib/nova
+    environment:
+      - LIBVIRT_DEFAULT_URI=qemu:///system
+    command: >
+      bash -c "
+      virtlogd -d &&
+      virtlockd -d &&
+      libvirtd -d &&
+      sleep 3 &&
+      nova-compute
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+      nova-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f nova-compute && virsh -c qemu:///system list >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    extra_hosts:
+      - "rabbitmq:127.0.0.1"
+      - "postgres:127.0.0.1"
+      - "memcached:127.0.0.1"
+      - "keystone:127.0.0.1"
+      - "keystone-init:127.0.0.1"
+      - "glance:127.0.0.1"
+      - "placement:127.0.0.1"
+      - "nova-api:127.0.0.1"
+      - "nova-scheduler:127.0.0.1"
+      - "nova-conductor:127.0.0.1"
+      - "nova-novncproxy:127.0.0.1"
+      - "nova-compute:127.0.0.1"
+      - "neutron:127.0.0.1"
+
+  neutron:
+    build:
+      context: .
+      dockerfile: neutron/neutron-dockerfile
+    container_name: openstack-neutron
+    hostname: neutron
+    restart: unless-stopped
+    networks:
+      openstack-net:
+        ipv4_address: 172.19.0.30
+    ports:
+      - "9696:9696"
+    env_file:
+      - ./env.list
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+      nova-api:
+        condition: service_healthy
+      placement:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9696 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  neutron-agents:
+    image: neutron-base
+    container_name: openstack-neutron-agents
+    hostname: neutron-agents
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - /lib/modules:/lib/modules:ro
+      - /run/netns:/run/netns:shared
+      - /run:/run
+    command: >
+      bash -c "
+      neutron-linuxbridge-agent --config-file /etc/neutron/plugins/ml2/linuxbridge_agent.ini --config-file /etc/neutron/plugins/ml2/ml2_conf.ini --config-file /etc/neutron/neutron.conf &
+      neutron-dhcp-agent --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/dhcp_agent.ini &
+      neutron-l3-agent --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/l3_agent.ini &
+      neutron-metadata-agent --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/metadata_agent.ini &
+      wait"
+    environment:
+      - OSLO_CONFIG_DIR=/etc/neutron
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keystone:
+        condition: service_healthy
+      nova-api:
+        condition: service_healthy
+      placement:
+        condition: service_healthy
+    extra_hosts:
+      - "rabbitmq:127.0.0.1"
+      - "postgres:127.0.0.1"
+      - "memcached:127.0.0.1"
+      - "keystone:127.0.0.1"
+      - "keystone-init:127.0.0.1"
+      - "glance:127.0.0.1"
+      - "placement:127.0.0.1"
+      - "nova-api:127.0.0.1"
+      - "nova-scheduler:127.0.0.1"
+      - "nova-conductor:127.0.0.1"
+      - "nova-novncproxy:127.0.0.1"
+      - "nova-compute:127.0.0.1"
+      - "neutron:127.0.0.1"
+
 networks:
   openstack-net:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.19.0.0/16

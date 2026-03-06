@@ -1,0 +1,33 @@
+FROM openstack-nova-base
+
+RUN mkdir -p /etc/nova /var/lib/nova/tmp
+RUN mkdir -p /var/lib/nova/instances
+RUN chown -R nova:nova /var/lib/nova
+
+# Copy config
+COPY nova/nova.conf /etc/nova/nova.conf
+
+RUN apt update && apt install -y \
+    nova-compute \
+    libvirt-daemon-system \
+    libvirt-clients \
+    qemu-system-arm \
+    qemu-utils \
+    bridge-utils \
+    dnsmasq-base \
+    && apt clean
+
+# Following for cgroup v2 ; does not work
+#RUN echo "systemd_cgroup = 0" >> /etc/libvirt/libvirtd.conf
+#RUN echo 'cgroup_controllers = [ ]' >> /etc/libvirt/qemu.conf
+# Sur l'hote (Linux) :
+# Go back to cgroup 1 instead :
+# Editez /etc/default/grub.
+#  Modifiez : GRUB_CMDLINE_LINUX_DEFAULT="systemd.unified_cgroup_hierarchy=0" (ajoutez-le aux options existantes).
+#  Lancez sudo update-grub et redémarrez.
+
+
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+# Overwrite in docker-compose.yml
+CMD ["nova-compute"]
