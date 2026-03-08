@@ -154,6 +154,7 @@ services:
       - openstack-net
     ports:
       - "8774:8774"
+      - "8775:8775"
     env_file:
       - ./env.list
     depends_on:
@@ -260,6 +261,7 @@ services:
       - /sys/fs/cgroup:/sys/fs/cgroup
       - /lib/modules:/lib/modules:ro
       - /var/lib/openstack-nova-compute:/var/lib/nova
+      - /var/lib/openstack-nova-instances:/var/lib/nova/instances
     environment:
       - LIBVIRT_DEFAULT_URI=qemu:///system
     command: >

@@ -43,10 +43,9 @@ openstack network create \
 
 openstack subnet create --network public-net \
   --no-dhcp \
-  --allocation-pool start=192.168.86.235,end=192.168.86.254 \
-  --gateway 192.168.86.1 \
-  --dns-nameserver 8.8.8.8 \
-  --subnet-range 192.168.86.0/24 public-subnet
+  --gateway 10.0.20.2 \
+  --allocation-pool start=10.0.20.3,end=10.0.20.127 \
+  --subnet-range 10.0.20.0/24 public-subnet
 
 openstack network create private-net
 openstack subnet create --network private-net \
@@ -72,6 +71,19 @@ openstack server create \
   test-vm
 openstack server show test-vm
 
+openstack security group list --project service
+
+# Server 2
+openstack server create \
+  --flavor m1.micro \
+  --image cirros-x86_64 \
+  --network private-net \
+  --security-group cd4689d4-c797-4584-8550-6edfc696931b \
+  --key-name mykey \
+  test-vm2
+openstack server show test-vm2
+
+
 openstack server create \
   --flavor m1.micro \
   --image cirros-arm64 \
@@ -87,7 +99,11 @@ openstack server show test-vm
 openstack floating ip create public-net
 
 #Associer à la VM :
-openstack server add floating ip test-vm 192.168.86.249
+openstack server add floating ip test-vm 10.0.20.87
+
+ping 10.0.20.87
+ssh -i ./mykey.pem cirros@10.0.20.87
+
 
 openstack server show test-vm -c addresses
 openstack port list --server test-vm

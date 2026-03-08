@@ -6,6 +6,7 @@ sudo rm -rf /var/lib/openstack-mariadb
 sudo rm -rf /var/lib/openstack-postgres
 sudo rm -rf /var/lib/openstack-rabbitmq
 sudo rm -rf /var/lib/openstack-nova-compute
+sudo rm -rf /var/lib/openstack-nova-instances
 sudo mkdir -p /var/lib/openstack-nova-compute/instances
 
 
